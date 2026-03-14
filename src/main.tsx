@@ -1,8 +1,18 @@
-import './style.css'
-import typescriptLogo from './assets/typescript.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import { setupCounter } from './counter.ts'
+import './style.css';
+import typescriptLogo from './assets/typescript.svg';
+import viteLogo from './assets/vite.svg';
+import heroImg from './assets/hero.png';
+import { setupCounter } from './counter.ts';
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.tsx';
+
+ReactDOM.createRoot(document.getElementById('app')!).render(
+	<React.StrictMode>
+		<App />
+	</React.StrictMode>,
+);
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 <section id="center">
@@ -55,6 +65,6 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
 <div class="ticks"></div>
 <section id="spacer"></section>
-`
+`;
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+setupCounter(document.querySelector<HTMLButtonElement>('#counter')!);
