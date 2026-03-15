@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
 type DigitKey = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
-
 type DigitColor = 'white' | 'green' | 'yellow' | 'red';
-
 type DigitState = Record<DigitKey, DigitColor>;
 
 export default function GuessleGame() {
@@ -125,8 +124,7 @@ export default function GuessleGame() {
 		const panoTex = new THREE.TextureLoader().load('/bg.jpg');
 		panoTex.colorSpace = THREE.SRGBColorSpace;
 		const panoMat = new THREE.MeshBasicMaterial({ map: panoTex });
-		const panoMesh = new THREE.Mesh(panoGeo, panoMat);
-		scene.add(panoMesh);
+		scene.add(new THREE.Mesh(panoGeo, panoMat));
 
 		// CAMERA
 		const camera = new THREE.PerspectiveCamera(
@@ -156,7 +154,7 @@ export default function GuessleGame() {
 		renderer.setSize(window.innerWidth, window.innerHeight);
 		renderer.setPixelRatio(window.devicePixelRatio);
 
-		// ORBIT CONTROLS
+		// CONTROLS
 		const controls = new OrbitControls(camera, renderer.domElement);
 		controls.enableDamping = true;
 		controls.dampingFactor = 0.05;
@@ -176,7 +174,7 @@ export default function GuessleGame() {
 		rim.position.set(0, 10, 20);
 		scene.add(rim);
 
-		// PHYSICS WORLD
+		// PHYSICS WORLD (jar only)
 		const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -9.82, 0) });
 		world.allowSleep = true;
 
@@ -185,17 +183,9 @@ export default function GuessleGame() {
 		solver.tolerance = 0.001;
 		world.solver = new CANNON.SplitSolver(solver);
 
-		const candyMat = new CANNON.Material('candy');
 		const tableMat = new CANNON.Material('table');
 
-		world.addContactMaterial(
-			new CANNON.ContactMaterial(candyMat, tableMat, {
-				friction: 0.4,
-				restitution: 0.2,
-			}),
-		);
-
-		// TABLE VISUAL + PHYSICS
+		// TABLE
 		const woodTex = new THREE.TextureLoader().load('/wood.jpg');
 		woodTex.colorSpace = THREE.SRGBColorSpace;
 		woodTex.wrapS = THREE.RepeatWrapping;
@@ -221,7 +211,7 @@ export default function GuessleGame() {
 		tableBody.material = tableMat;
 		world.addBody(tableBody);
 
-		// JAR PHYSICS + VISUALS
+		// JAR
 		const radius = 5;
 		const height = 10;
 		const wallThickness = 0.25;
@@ -310,54 +300,83 @@ export default function GuessleGame() {
 		bottomMesh.position.set(0, -height / 2, 0);
 		jarGroup.add(bottomMesh);
 
-		// CANDY FACTORY
-		function createCandy() {
-			const geo = new THREE.SphereGeometry(0.3, 16, 16);
-			const mat = new THREE.MeshPhysicalMaterial({
-				color: new THREE.Color(`hsl(${Math.random() * 360}, 80%, 60%)`),
-				roughness: 0.05,
-				metalness: 0.0,
-				clearcoat: 1.0,
-				clearcoatRoughness: 0.05,
-			});
+		// -----------------------------
+		// REALISTIC STACKED CANDY (HEX PACKING)
+		// -----------------------------
 
-			const mesh = new THREE.Mesh(geo, mat);
-			scene.add(mesh);
+		const actual = parseInt(answer.current, 10);
+		const count = actual;
 
-			const shape = new CANNON.Sphere(0.3);
-			const body = new CANNON.Body({
-				mass: 0.1,
-				shape,
-				position: new CANNON.Vec3(
-					(Math.random() - 0.5) * 2,
-					5 + Math.random() * 2,
-					(Math.random() - 0.5) * 2,
-				),
-			});
-			body.material = candyMat;
-			body.sleepSpeedLimit = 0.1;
-			body.sleepTimeLimit = 0.5;
+		const candyRadius = 0.25;
+		const candyDiameter = candyRadius * 2;
 
-			world.addBody(body);
+		const candyGeo = new THREE.SphereGeometry(candyRadius, 12, 12);
+		const candyMat = new THREE.MeshPhysicalMaterial({
+			roughness: 0.05,
+			metalness: 0.0,
+			clearcoat: 1.0,
+			clearcoatRoughness: 0.05,
+		});
 
-			return { mesh, body };
+		const instanced = new THREE.InstancedMesh(candyGeo, candyMat, count);
+		scene.add(instanced);
+
+		const dummy = new THREE.Object3D();
+
+		let placed = 0;
+		let y = -height / 2 + candyRadius; // start at bottom
+
+		while (placed < count) {
+			// how many candies fit across the jar?
+			const rowWidth = radius * 1.8;
+			const candiesPerRow = Math.floor(rowWidth / candyDiameter);
+
+			for (let row = 0; row < candiesPerRow && placed < count; row++) {
+				// hex offset every other row
+				const offset = row % 2 === 0 ? 0 : candyRadius;
+
+				for (let col = 0; col < candiesPerRow && placed < count; col++) {
+					const x = -rowWidth / 2 + col * candyDiameter + offset;
+					const z = -rowWidth / 2 + row * candyDiameter;
+
+					// skip if outside jar radius
+					if (x * x + z * z > radius * radius * 0.9) continue;
+
+					// slight jitter for natural look
+					const jitterX = (Math.random() - 0.5) * 0.1;
+					const jitterZ = (Math.random() - 0.5) * 0.1;
+
+					dummy.position.set(x + jitterX, y, z + jitterZ);
+
+					dummy.rotation.set(
+						Math.random() * Math.PI,
+						Math.random() * Math.PI,
+						Math.random() * Math.PI,
+					);
+
+					dummy.updateMatrix();
+					instanced.setMatrixAt(placed, dummy.matrix);
+
+					instanced.setColorAt(
+						placed,
+						new THREE.Color(`hsl(${Math.random() * 360}, 80%, 60%)`),
+					);
+
+					placed++;
+				}
+			}
+
+			// move up to next layer
+			y += candyDiameter * 0.9; // slight compression for realism
 		}
 
-		const candies: { mesh: THREE.Mesh; body: CANNON.Body }[] = [];
-		for (let i = 0; i < 20; i++) candies.push(createCandy());
-
+		instanced.instanceMatrix.needsUpdate = true;
 		// ANIMATION LOOP
 		function animate() {
 			requestAnimationFrame(animate);
 			world.step(1 / 60);
-
 			controls.update();
 			renderer.render(scene, camera);
-
-			for (const c of candies) {
-				c.mesh.position.copy(c.body.position as any);
-				c.mesh.quaternion.copy(c.body.quaternion as any);
-			}
 		}
 		animate();
 
