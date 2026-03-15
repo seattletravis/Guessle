@@ -58,7 +58,7 @@ export default function GuessleGame() {
 	const [activeRow, setActiveRow] = useState(0);
 
 	const [usedThisRow, setUsedThisRow] = useState<Set<DigitKey>>(new Set());
-
+	const [gameOver, setGameOver] = useState<null | 'win' | 'lose'>(null);
 	function enterDigit(d: DigitKey) {
 		// block if already used in this row
 		if (usedThisRow.has(d)) return;
@@ -135,7 +135,7 @@ export default function GuessleGame() {
 
 		// win condition
 		if (result.every((r) => r === 'green')) {
-			console.log('WIN!');
+			setGameOver('win');
 			return;
 		}
 
@@ -157,28 +157,33 @@ export default function GuessleGame() {
 
 			// reset row usage
 			setUsedThisRow(new Set());
-
-			// ⭐ AUTO‑POPULATE GREEN DIGITS ⭐
-			setGuesses((prev) => {
-				const newGrid = [...prev];
-				const newRow = ['', '', '', ''];
-
-				// fill in green digits in correct positions
-				for (let i = 0; i < 4; i++) {
-					if (guessColors[activeRow][i] === 'green') {
-						newRow[i] = guesses[activeRow][i];
-
-						// mark digit as used this row
-						setUsedThisRow((prev) => new Set(prev).add(newRow[i] as DigitKey));
-					}
-				}
-
-				newGrid[nextRow] = newRow;
-				return newGrid;
-			});
+		}
+		// lose condition (no more rows)
+		if (activeRow === 3) {
+			setGameOver('lose');
 		}
 	}
+	useEffect(() => {
+		if (activeRow === 0) return; // nothing to auto-fill on first row
 
+		setGuesses((prev) => {
+			const newGrid = [...prev];
+			const newRow = [...newGrid[activeRow]];
+
+			// fill in green digits from previous row
+			for (let i = 0; i < 4; i++) {
+				if (guessColors[activeRow - 1][i] === 'green') {
+					newRow[i] = guesses[activeRow - 1][i];
+
+					// mark digit as used this row
+					setUsedThisRow((prev) => new Set(prev).add(newRow[i] as DigitKey));
+				}
+			}
+
+			newGrid[activeRow] = newRow;
+			return newGrid;
+		});
+	}, [activeRow]);
 	// -----------------------------
 	// THREE + CANNON
 	// -----------------------------
@@ -209,7 +214,7 @@ export default function GuessleGame() {
 		if (aspect > 1.6) cameraZ = 24;
 		if (aspect > 2.0) cameraZ = 28;
 
-		camera.position.set(5, 2, cameraZ);
+		camera.position.set(5, 4, cameraZ);
 
 		// RENDERER
 		const renderer = new THREE.WebGLRenderer({
@@ -230,7 +235,8 @@ export default function GuessleGame() {
 		controls.maxDistance = 40;
 		controls.minPolarAngle = 0.3;
 		controls.maxPolarAngle = Math.PI / 2.1;
-		controls.target.set(0, 0, 0);
+		controls.target.set(0, 4, 0);
+		// ⭐ Move the camera AFTER controls exist
 		controls.update();
 
 		// LIGHTS
@@ -447,12 +453,7 @@ export default function GuessleGame() {
 			renderer.render(scene, camera);
 		}
 		animate();
-		const sortedDigits = (Object.keys(digitState) as DigitKey[]).sort(
-			(a, b) => {
-				const order = { green: 2, yellow: 0, red: 1, white: 0 };
-				return order[digitState[a]] - order[digitState[b]];
-			},
-		);
+
 		return () => renderer.dispose();
 	}, []);
 
@@ -467,7 +468,14 @@ export default function GuessleGame() {
 
 	return (
 		<div
-			style={{ width: '100vw', height: '100vh', position: 'fixed', inset: 0 }}>
+			style={{
+				width: '100vw',
+				height: '100vh',
+				position: 'fixed',
+				inset: 0,
+				overflow: 'hidden',
+				touchAction: 'none',
+			}}>
 			<canvas
 				ref={canvasRef}
 				style={{
@@ -479,14 +487,27 @@ export default function GuessleGame() {
 
 			{/* DIGIT BOARD */}
 			<div className='digit-board'>
-				{sortedDigits.map((d) => (
-					<div
-						key={d}
-						className={`digit ${digitState[d]} ${usedThisRow.has(d) ? 'grey' : ''}`}
-						onClick={() => enterDigit(d)}>
-						{d}
-					</div>
-				))}
+				{sortedDigits.map((d) => {
+					const permanent = digitState[d]; // green, yellow, red, white
+					const tempGrey = usedThisRow.has(d) ? 'grey' : '';
+
+					const disabled =
+						permanent === 'green' || permanent === 'red' || tempGrey === 'grey'
+							? 'disabled'
+							: '';
+
+					return (
+						<div
+							key={d}
+							className={`digit ${permanent} ${tempGrey} ${disabled}`}
+							onClick={() => {
+								if (disabled) return;
+								enterDigit(d);
+							}}>
+							{d}
+						</div>
+					);
+				})}
 			</div>
 
 			{/* GUESS GRID */}
@@ -506,6 +527,24 @@ export default function GuessleGame() {
 			<button className='guess-button' onClick={submitGuess}>
 				Guess
 			</button>
+			{gameOver === 'win' && (
+				<div className='end-screen'>
+					<div className='end-box'>
+						<h1>You Win!</h1>
+						<button onClick={() => window.location.reload()}>Play Again</button>
+					</div>
+				</div>
+			)}
+
+			{gameOver === 'lose' && (
+				<div className='end-screen'>
+					<div className='end-box'>
+						<h1>Please Try Again</h1>
+						<p>The number was: {answer.current}</p>
+						<button onClick={() => window.location.reload()}>Play Again</button>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

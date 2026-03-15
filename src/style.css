@@ -31,6 +31,11 @@
 		font-size: 16px;
 	}
 }
+* {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
 
 @media (prefers-color-scheme: dark) {
 	:root {
@@ -298,7 +303,7 @@ code {
 }
 .digit-board {
 	position: absolute;
-	top: 20px;
+	top: 35px;
 	left: 50%;
 	transform: translateX(-50%);
 	display: grid;
@@ -309,7 +314,7 @@ code {
 
 .guess-grid {
 	position: absolute;
-	top: 120px;
+	top: 150px;
 	left: 50%;
 	transform: translateX(-50%);
 	display: grid;
@@ -405,4 +410,39 @@ code {
 .digit.red {
 	background: #d32f2f;
 	color: white;
+}
+
+.digit.disabled {
+	pointer-events: none;
+	opacity: 0.6;
+}
+.end-screen {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.6);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 999;
+}
+
+.end-box {
+	background: white;
+	padding: 30px 40px;
+	border-radius: 12px;
+	text-align: center;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.end-box h1 {
+	margin-bottom: 20px;
+	font-size: 32px;
+	color: var(--text-h);
+}
+
+.end-box button {
+	padding: 12px 24px;
+	font-size: 18px;
+	border-radius: 8px;
+	cursor: pointer;
 }
