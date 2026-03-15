@@ -48,9 +48,21 @@ export default function GuessleGame() {
 		['', '', '', ''],
 	]);
 
+	const [guessColors, setGuessColors] = useState([
+		['', '', '', ''],
+		['', '', '', ''],
+		['', '', '', ''],
+		['', '', '', ''],
+	]);
+
 	const [activeRow, setActiveRow] = useState(0);
 
-	function enterDigit(d: string) {
+	const [usedThisRow, setUsedThisRow] = useState<Set<DigitKey>>(new Set());
+
+	function enterDigit(d: DigitKey) {
+		// block if already used in this row
+		if (usedThisRow.has(d)) return;
+
 		setGuesses((prev) => {
 			const newGrid = [...prev];
 			const row = [...newGrid[activeRow]];
@@ -61,6 +73,9 @@ export default function GuessleGame() {
 			}
 			return newGrid;
 		});
+
+		// mark digit as used this row
+		setUsedThisRow((prev) => new Set(prev).add(d));
 	}
 
 	function evaluateGuess(guess: string) {
@@ -83,32 +98,66 @@ export default function GuessleGame() {
 	function updateDigitBoard(guess: string, result: string[]) {
 		setDigitState((prev) => {
 			const next = { ...prev };
+
 			guess.split('').forEach((d, i) => {
 				const key = d as DigitKey;
 				const color = result[i];
 
-				if (color === 'green') next[key] = 'green';
-				else if (color === 'yellow' && next[key] !== 'green')
-					next[key] = 'yellow';
-				else if (color === 'red' && next[key] === 'white') next[key] = 'red';
+				if (color === 'green') {
+					next[key] = 'green';
+				} else if (color === 'yellow') {
+					// yellow should NOT override green
+					if (next[key] !== 'green') next[key] = 'yellow';
+				} else if (color === 'red') {
+					// red only applies if digit was never yellow or green
+					if (next[key] === 'white') next[key] = 'red';
+				}
 			});
+
 			return next;
 		});
 	}
-
 	function submitGuess() {
 		const guess = guesses[activeRow].join('');
 		if (guess.length < 4) return;
 
 		const result = evaluateGuess(guess);
+
+		// update keyboard colors
 		updateDigitBoard(guess, result);
 
+		// update grid tile colors
+		setGuessColors((prev) => {
+			const next = [...prev];
+			next[activeRow] = result;
+			return next;
+		});
+
+		// win condition
 		if (result.every((r) => r === 'green')) {
 			console.log('WIN!');
 			return;
 		}
 
-		if (activeRow < 3) setActiveRow(activeRow + 1);
+		// move to next row
+		// if (activeRow < 3) setActiveRow(activeRow + 1);
+		if (activeRow < 3) {
+			setActiveRow(activeRow + 1);
+
+			// reset yellow digits to white
+			setDigitState((prev) => {
+				const next = { ...prev };
+				for (const key in next) {
+					if (next[key as DigitKey] === 'yellow') {
+						next[key as DigitKey] = 'white';
+					}
+				}
+				return next;
+			});
+
+			// reset row usage
+			setUsedThisRow(new Set());
+		}
 	}
 
 	// -----------------------------
@@ -416,7 +465,7 @@ export default function GuessleGame() {
 				{guesses.map((row, r) => (
 					<div key={r} className='guess-row'>
 						{row.map((digit, c) => (
-							<div key={c} className='guess-box'>
+							<div key={c} className={`guess-box ${guessColors[r][c]}`}>
 								{digit}
 							</div>
 						))}
