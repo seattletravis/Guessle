@@ -140,9 +140,9 @@ export default function GuessleGame() {
 		}
 
 		// move to next row
-		// if (activeRow < 3) setActiveRow(activeRow + 1);
 		if (activeRow < 3) {
-			setActiveRow(activeRow + 1);
+			const nextRow = activeRow + 1;
+			setActiveRow(nextRow);
 
 			// reset yellow digits to white
 			setDigitState((prev) => {
@@ -157,6 +157,25 @@ export default function GuessleGame() {
 
 			// reset row usage
 			setUsedThisRow(new Set());
+
+			// ⭐ AUTO‑POPULATE GREEN DIGITS ⭐
+			setGuesses((prev) => {
+				const newGrid = [...prev];
+				const newRow = ['', '', '', ''];
+
+				// fill in green digits in correct positions
+				for (let i = 0; i < 4; i++) {
+					if (guessColors[activeRow][i] === 'green') {
+						newRow[i] = guesses[activeRow][i];
+
+						// mark digit as used this row
+						setUsedThisRow((prev) => new Set(prev).add(newRow[i] as DigitKey));
+					}
+				}
+
+				newGrid[nextRow] = newRow;
+				return newGrid;
+			});
 		}
 	}
 
@@ -428,13 +447,23 @@ export default function GuessleGame() {
 			renderer.render(scene, camera);
 		}
 		animate();
-
+		const sortedDigits = (Object.keys(digitState) as DigitKey[]).sort(
+			(a, b) => {
+				const order = { green: 2, yellow: 0, red: 1, white: 0 };
+				return order[digitState[a]] - order[digitState[b]];
+			},
+		);
 		return () => renderer.dispose();
 	}, []);
 
 	// -----------------------------
 	// UI RENDER
 	// -----------------------------
+
+	const sortedDigits = (Object.keys(digitState) as DigitKey[]).sort((a, b) => {
+		const order = { green: 2, yellow: 0, red: 1, white: 0 };
+		return order[digitState[a]] - order[digitState[b]];
+	});
 
 	return (
 		<div
@@ -450,10 +479,10 @@ export default function GuessleGame() {
 
 			{/* DIGIT BOARD */}
 			<div className='digit-board'>
-				{(Object.keys(digitState) as DigitKey[]).map((d) => (
+				{sortedDigits.map((d) => (
 					<div
 						key={d}
-						className={`digit ${digitState[d]}`}
+						className={`digit ${digitState[d]} ${usedThisRow.has(d) ? 'grey' : ''}`}
 						onClick={() => enterDigit(d)}>
 						{d}
 					</div>
