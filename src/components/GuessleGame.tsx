@@ -8,6 +8,21 @@ export default function GuessleGame() {
 	useEffect(() => {
 		const scene = new THREE.Scene();
 
+		// --- PANOSPHERE BACKGROUND ---
+		const panoGeometry = new THREE.SphereGeometry(50, 60, 40);
+		panoGeometry.scale(-1, 1, 1); // invert the sphere so we see the inside
+
+		const panoTexture = new THREE.TextureLoader().load('/bg.jpg');
+		panoTexture.colorSpace = THREE.SRGBColorSpace;
+
+		const panoMaterial = new THREE.MeshBasicMaterial({
+			map: panoTexture,
+		});
+		// panoMaterial.color = new THREE.Color(1.2, 1.2, 1.2); // slight boost
+		panoMaterial.color.multiplyScalar(1.25);
+
+		const panoMesh = new THREE.Mesh(panoGeometry, panoMaterial);
+		scene.add(panoMesh);
 		const camera = new THREE.PerspectiveCamera(
 			45,
 			window.innerWidth / window.innerHeight,
@@ -29,6 +44,7 @@ export default function GuessleGame() {
 		renderer.shadowMap.enabled = false;
 		renderer.toneMapping = THREE.NoToneMapping;
 		renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+		renderer.setClearColor(0x000000, 1); // force opaque canvas
 
 		// --- WORLD ---
 		const world = new CANNON.World({
@@ -106,11 +122,19 @@ export default function GuessleGame() {
 		world.addBody(tableBody);
 
 		// --- LIGHTS ---
-		scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+		scene.add(new THREE.AmbientLight(0xffffff, 5));
 
-		const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+		const directional = new THREE.DirectionalLight(0xffffff, 2.8);
 		directional.position.set(10, 20, 10);
 		scene.add(directional);
+
+		const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+		keyLight.position.set(-10, 15, -5);
+		scene.add(keyLight);
+
+		const rim = new THREE.DirectionalLight(0xffffff, 0.6);
+		rim.position.set(0, 10, 20);
+		scene.add(rim);
 
 		// --- JAR VISUALS (square to match physics) ---
 		const jarGroup = new THREE.Group();
@@ -123,6 +147,8 @@ export default function GuessleGame() {
 			roughness: 0.1,
 			metalness: 0.0,
 		});
+		wallMat.roughness = 0.02;
+		wallMat.opacity = 0.1;
 
 		// Left visual wall
 		const leftWall = new THREE.Mesh(
@@ -165,8 +191,6 @@ export default function GuessleGame() {
 		jarGroup.add(bottomMesh);
 
 		// --- BACKGROUND + TABLE VISUAL ---
-		scene.background = new THREE.Color(0x222222);
-
 		const table = new THREE.Mesh(
 			new THREE.BoxGeometry(30, 1, 30),
 			new THREE.MeshStandardMaterial({ color: 0x8b4513 }),
