@@ -194,7 +194,7 @@ export default function GuessleGame() {
 		// PANOSPHERE
 		const panoGeo = new THREE.SphereGeometry(50, 60, 40);
 		panoGeo.scale(-1, 1, 1);
-		const panoTex = new THREE.TextureLoader().load('/bg.jpg');
+		const panoTex = new THREE.TextureLoader().load('./bg.jpg');
 		panoTex.colorSpace = THREE.SRGBColorSpace;
 		const panoMat = new THREE.MeshBasicMaterial({ map: panoTex });
 		scene.add(new THREE.Mesh(panoGeo, panoMat));
@@ -260,7 +260,7 @@ export default function GuessleGame() {
 		const tableMat = new CANNON.Material('table');
 
 		// TABLE
-		const woodTex = new THREE.TextureLoader().load('/wood.jpg');
+		const woodTex = new THREE.TextureLoader().load('./wood.jpg');
 		woodTex.colorSpace = THREE.SRGBColorSpace;
 		woodTex.wrapS = THREE.RepeatWrapping;
 		woodTex.wrapT = THREE.RepeatWrapping;
@@ -531,6 +531,7 @@ export default function GuessleGame() {
 				<div className='end-screen'>
 					<div className='end-box'>
 						<h1>You Win!</h1>
+						<p>The number is: {answer.current}</p>
 						<button onClick={() => window.location.reload()}>Play Again</button>
 					</div>
 				</div>
