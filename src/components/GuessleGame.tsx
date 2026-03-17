@@ -465,7 +465,7 @@ export default function GuessleGame() {
 		const order = { green: 2, yellow: 0, red: 1, white: 0 };
 		return order[digitState[a]] - order[digitState[b]];
 	});
-
+	const activeCol = guesses[activeRow].findIndex((x) => x === '');
 	return (
 		<div
 			style={{
@@ -488,9 +488,8 @@ export default function GuessleGame() {
 			{/* DIGIT BOARD */}
 			<div className='digit-board'>
 				{sortedDigits.map((d) => {
-					const permanent = digitState[d]; // green, yellow, red, white
+					const permanent = digitState[d];
 					const tempGrey = usedThisRow.has(d) ? 'grey' : '';
-
 					const disabled =
 						permanent === 'green' || permanent === 'red' || tempGrey === 'grey'
 							? 'disabled'
@@ -515,18 +514,26 @@ export default function GuessleGame() {
 				{guesses.map((row, r) => (
 					<div key={r} className='guess-row'>
 						{row.map((digit, c) => (
-							<div key={c} className={`guess-box ${guessColors[r][c]}`}>
+							<div
+								key={c}
+								className={`guess-box ${guessColors[r][c]} ${
+									r === activeRow && c === activeCol ? 'active' : ''
+								}`}>
 								{digit}
 							</div>
 						))}
+
+						{/* Guess button follows the active row */}
+						{r === activeRow && (
+							<button className='guess-button' onClick={submitGuess}>
+								Guess
+							</button>
+						)}
 					</div>
 				))}
 			</div>
 
-			{/* GUESS BUTTON */}
-			<button className='guess-button' onClick={submitGuess}>
-				Guess
-			</button>
+			{/* END SCREENS */}
 			{gameOver === 'win' && (
 				<div className='end-screen'>
 					<div className='end-box'>
