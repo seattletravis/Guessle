@@ -2,7 +2,9 @@
 	--vh: 1vh;
 
 	--text: #6b6375;
-	--text-h: #08060d;
+	/* --text-h: #08060d; */
+	--text-h: #000000;
+
 	--bg: #fff;
 	--border: #e5e4e7;
 	--code-bg: #f4f3ec;
@@ -403,8 +405,14 @@ code {
 
 /* Default state */
 .digit.white {
-	background: white;
-	color: var(--text-h);
+	background: #ffffff;
+	color: #000000; /* force true black */
+	font-weight: 700; /* boosts clarity on LCD screens */
+	text-shadow:
+		-1px -1px 0 #fff,
+		1px -1px 0 #fff,
+		-1px 1px 0 #fff,
+		1px 1px 0 #fff; /* crisp outline for visibility */
 }
 
 /* Used this row (temporary lock) */
