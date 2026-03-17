@@ -308,7 +308,7 @@ code {
 	left: 50%;
 	transform: translateX(-50%);
 	display: grid;
-	grid-template-columns: repeat(5, 40px);
+	grid-template-columns: repeat(5, 59px);
 	grid-template-rows: repeat(2, 40px);
 	gap: 10px;
 	z-index: 10;
@@ -382,7 +382,7 @@ code {
 }
 /* DIGIT BUTTONS */
 .digit {
-	width: 40px;
+	width: 60px;
 	height: 40px;
 	border-radius: 6px;
 	display: flex;
